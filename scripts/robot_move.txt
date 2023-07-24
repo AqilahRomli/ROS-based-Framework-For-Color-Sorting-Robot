@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+
+import rospy
+import cv2
+import numpy as np
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+from geometry_msgs.msg import Twist
+#colour = "red"
+
+class robotmove:
+    def __init__(self):
+        self.bridge = CvBridge()
+        self.image_sub = rospy.Subscriber("/usb_cam/image_raw", Image, self.image_callback)
+        self.cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
+        self.twist = Twist()
+
+    def image_callback(self, data):
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        except CvBridgeError as e:
+            print(e)
+
+        # Convert BGR to HSV
+        hsv_image= cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+        cv2.imshow("Image window", cv_image)
+        cv2.waitKey(1)
+
+    def straight(self):
+        rate = rospy.Rate(10)
+        duration = 3
+        start_time = rospy.Time.now().to_sec()
+        while rospy.Time.now().to_sec() - start_time < duration and not rospy.is_shutdown():
+            self.twist.linear.x = 0.2 #move forward
+            self.twist.angular.z = 0.5
+            self.cmd_vel_pub.publish(self.twist)
+            rate.sleep()
+        
+    def reverse(self):
+        rate = rospy.Rate(10)
+        duration = 3
+        start_time = rospy.Time.now().to_sec()
+        while rospy.Time.now().to_sec() - start_time < duration and not rospy.is_shutdown():
+            self.twist.linear.x = -0.2 #move forward
+            self.twist.angular.z = -0.5
+            self.cmd_vel_pub.publish(self.twist)
+            rate.sleep()
+
+    def right(self):
+        duration = 2.5
+        start_time = rospy.Time.now().to_sec()
+        while rospy.Time.now().to_sec() - start_time < duration and not rospy.is_shutdown():
+            self.twist.linear.x = 0.0
+            self.twist.angular.z = -0.5
+            self.cmd_vel_pub.publish(self.twist)
+
+    def left(self):
+        duration = 2.5
+        start_time = rospy.Time.now().to_sec()
+        while rospy.Time.now().to_sec() - start_time < duration and not rospy.is_shutdown():
+            self.twist.linear.x = 0.0
+            self.twist.angular.z = 0.5
+            self.cmd_vel_pub.publish(self.twist)
+
+    def stop(self):
+        duration = 10
+        start_time = rospy.Time.now().to_sec()
+        while rospy.Time.now().to_sec() - start_time < duration and not rospy.is_shutdown():
+            self.twist.linear.x = 0.0
+            self.twist.angular.z = 0.0
+            self.cmd_vel_pub.publish(self.twist)
+
+    def move(self):
+        self.straight()
+        self.reverse()
+        rospy.sleep(1)
+        robot.stop()
+
+
+if __name__ == '__main__':
+    try:
+        rospy.init_node('robot_move')
+        robot = robotmove()
+        robot.move()
+    except rospy.ROSInterruptException:
+        pass
+
+
+
